@@ -1,5 +1,6 @@
 /data
 /credentials
 .ipynb
-.pyc
+*.pyc
 .idea
+__pycache__
