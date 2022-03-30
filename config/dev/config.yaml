@@ -1,0 +1,13 @@
+environment: development
+debug: True
+log_config: config/dev/logging.yaml
+credentials: credentials/credentials.json
+cse_ids:
+  nl: 27b14988f7d1510ce
+  en: 82ca299a331d23df6
+google_search_store:
+  type: local
+  base_path: data/search_results
+web_scraper:
+  type: local
+  base_path: data/scraped
