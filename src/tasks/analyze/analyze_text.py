@@ -36,8 +36,9 @@ def analyze(websites: pd.DataFrame, corpus: List[str]):
         log.info("...Most standout words for %s (%s)", *url_hashes[doc_idx])
         best_word_indices = np.argsort(tf_idf_scores[doc_idx, :])[-10:]
         for word_idx in best_word_indices:
-            log.info("...%s: %s", words[word_idx], round(tf_idf_scores[doc_idx, word_idx], 3))
-            keywords.append(words[word_idx])
+            if tf_idf_scores[doc_idx, word_idx] > .1:
+                log.info("...%s: %s", words[word_idx], round(tf_idf_scores[doc_idx, word_idx], 3))
+                keywords.append(words[word_idx])
     return keywords
 
 

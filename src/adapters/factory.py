@@ -2,17 +2,21 @@ import json
 
 from emporium import Store, create_store, LocalStore
 from adapters.google_search import GoogleQueryService
+from adapters.cached_google_search import CachedGoogleQueryService
 from adapters.web_scraper import WebScraper
+from adapters.cached_web_scraper import CachedWebScraper
 
 
 def create_google_search_service(config):
     service_config = dict()
-    service_config["store"] = create_google_search_store(config)
+    store = create_google_search_store(config)
+    service_config["store"] = store
     credentials_path = config.get("credentials")
     with open(credentials_path, "r") as h:
         credentials = json.load(h)
     service_config["developer_key"] = credentials.get("developer_key")
-    return GoogleQueryService.from_config(service_config)
+    service = GoogleQueryService.from_config(service_config)
+    return CachedGoogleQueryService(service, store)
 
 
 def create_google_search_store(config) -> Store:
@@ -22,7 +26,8 @@ def create_google_search_store(config) -> Store:
 
 def create_web_scraper(config):
     store = create_web_scrape_store(config)
-    return WebScraper(store)
+    scraper = WebScraper(store)
+    return CachedWebScraper(scraper, store)
 
 
 def create_web_scrape_store(config) -> Store:

@@ -19,7 +19,7 @@ class StreamlitApp:
         button = st.sidebar.button(label="Start")
         if button:
             keywords = self._find_keywords(query.lower(), config)
-            wordcloud = WordCloud().generate(",".join(keywords))
+            wordcloud = WordCloud(max_font_size=50, max_words=10, background_color="white").generate(",".join(keywords))
             plt.imshow(wordcloud, interpolation='bilinear')
             plt.axis("off")
             plt.show()
@@ -27,13 +27,13 @@ class StreamlitApp:
 
     def _find_keywords(self, query: str, config):
         websites = []
-        with st.info("...Searching Google for top rankings"):
+        with st.spinner("...Searching Google for top rankings"):
             for start_idx in (1, 11):
                 config["start"] = start_idx
                 websites.append(self._search_service.search(query.lower(), config))
         websites = pd.concat(websites, axis=0)
-        with st.info("...Scraping website content"):
+        with st.spinner("...Scraping website content"):
             texts = [self._scraper.fetch_text(page) for page in websites["link"].values]
-        with st.info("...Analyzing top keywords"):
+        with st.spinner("...Analyzing top keywords"):
             keywords = analyze(websites, texts)
         return keywords
