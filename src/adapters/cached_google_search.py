@@ -7,6 +7,8 @@ import pandas as pd
 from emporium import Store
 from googleapiclient.discovery import build
 
+from adapters.google_search import GoogleQueryService
+
 
 log = logging.getLogger(__name__)
 
@@ -27,19 +29,23 @@ class CachedGoogleQueryService:
     def from_config(cls, config: Dict):
         dev_key = config.get("developer_key")
         store = config.get("store")
-        service = build("customsearch", "v1", developerKey=dev_key)
+        api_service = build("customsearch", "v1", developerKey=dev_key)
+        service = GoogleQueryService(api_service)
         return cls(service, store)
 
     def search(self, query, query_config: Dict) -> pd.DataFrame:
         # config needs to contain cx (cse_id) and num parameters
         log.info("...Searching search results for %s", query)
-        results = self._fetch_from_cache(query, query_config)
+        results = self._fetch_from_store(query, query_config)
         if results.empty:
             log.info("...No cached results found, querying Google")
             results = self._service.search(query, query_config)
-        return results
+            self._write_to_store(results)
+        return results["link"].values.tolist()
 
-    def _fetch_from_cache(self, query, query_config) -> pd.DataFrame:
+    def _fetch_from_store(self, query, query_config) -> pd.DataFrame:
+        """Checks if query has been done recently and if so, fetches these results. This
+        to prevent over-usage of the API, which is limited to 100 requests per day"""
         log.info("...Search in recent cached results")
         today = dt.date.today()
         cached_results = self._read_cache()
@@ -58,18 +64,8 @@ class CachedGoogleQueryService:
         except emporium.base.NoSuchFile:
             return pd.DataFrame(columns=_COLUMNS)
 
-
-def _to_result_format(raw_results: SearchResults, query, query_config) -> pd.DataFrame:
-    results = []
-    for result in raw_results:
-        row = dict()
-        for element in ("title", "snippet", "link"):
-            row[element] = result.get(element)
-        results.append(row)
-    data = pd.DataFrame(results)
-    data["date"] = dt.date.today().strftime("%Y-%m-%d")
-    data["query"] = query
-    data["cx"] = query_config.get("cx")
-    data["start"] = query_config.get("start")
-    data["num"] = query_config.get("num")
-    return data
+    def _write_to_store(self, results: pd.DataFrame):
+        cached_results = self._read_cache()
+        updated_results = pd.concat((cached_results, results))
+        with self._store.write("cached_search_results.csv", "b", encoding="utf-8") as h:
+            updated_results.to_csv(h, line_terminator="\r", encoding="utf-8")

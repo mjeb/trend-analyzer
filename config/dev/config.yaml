@@ -8,6 +8,10 @@ cse_ids:
 google_search_store:
   type: local
   base_path: data/search_results
+zorgvisie:
+  type: local
+  base_path: data/articles
+  url: https://www.zorgvisie.nl/feed
 web_scraper:
   type: local
   base_path: data/scraped

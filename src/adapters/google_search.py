@@ -2,11 +2,9 @@ import logging
 import datetime as dt
 from typing import Dict, List, Union
 
-import emporium.base
 import pandas as pd
-from emporium import Store
-from googleapiclient.discovery import build
 
+from domain.search_service import SearchService
 
 log = logging.getLogger(__name__)
 
@@ -16,19 +14,11 @@ SearchResults = List[SearchResult]
 _COLUMNS = ["date", "query", "cx", "start", "num", "title", "snippet", "link"]
 
 
-class GoogleQueryService:
+class GoogleQueryService(SearchService):
     """ "Uses Google custom search API find search results for topics/queries"""
 
-    def __init__(self, service, store: Store):
+    def __init__(self, service):
         self._service = service
-        self._store = store
-
-    @classmethod
-    def from_config(cls, config: Dict):
-        dev_key = config.get("developer_key")
-        store = config.get("store")
-        service = build("customsearch", "v1", developerKey=dev_key)
-        return cls(service, store)
 
     def search(self, query, query_config: Dict) -> pd.DataFrame:
         # config needs to contain cx (cse_id) and num parameters
@@ -37,22 +27,7 @@ class GoogleQueryService:
         if not raw_results:
             raw_results = pd.DataFrame(columns=_COLUMNS)
         results = _to_result_format(raw_results, query, query_config)
-        self._to_cache(results)
         return results
-
-    def _to_cache(self, results: pd.DataFrame):
-        cached_results = self._read_cache()
-        updated_results = pd.concat((cached_results, results))
-        with self._store.write("cached_search_results.csv", "b", encoding="utf-8") as h:
-            updated_results.to_csv(h, line_terminator="\r", encoding="utf-8")
-
-    def _read_cache(self) -> pd.DataFrame:
-        """Reads historic searches"""
-        try:
-            with self._store.open("cached_search_results.csv", "r") as h:
-                return pd.read_csv(h, index_col=0)
-        except emporium.base.NoSuchFile:
-            return pd.DataFrame(columns=_COLUMNS)
 
 
 def _to_result_format(raw_results: SearchResults, query, query_config) -> pd.DataFrame:
