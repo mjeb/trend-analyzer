@@ -20,9 +20,9 @@ _STOP_WORDS = set(stopwords.words("dutch"))
 _MIN_WORD_LEN = 4
 
 
-def analyze(websites: pd.DataFrame, corpus: List[str]):
+def analyze(links, corpus: List[str]):
     tokenized_corpus = []
-    url_hashes = [(link.split("/")[2], sha256(link.encode("utf-8")).hexdigest()) for link in websites["link"].values]
+    url_hashes = [(link.split("/")[2], sha256(link.encode("utf-8")).hexdigest()) for link in links]
     for document in corpus:
         tokenized_str = _tokenize(document)
         tokenized_corpus.append(tokenized_str)
